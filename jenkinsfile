@@ -1,4 +1,4 @@
-jobDsl failOnSeedCollision: true, ignoreExisting: true, removedJobAction: 'DISABLE', scriptText: '''job(\'example\') {
+jobDsl scriptText: '''job(\'example\') {
     parameters {
         choiceParam(\'myParameterName\', [\'option 1 (default)\', \'option 2\', \'option 3\'], \'my description\')
     }
