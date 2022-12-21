@@ -1,24 +1,5 @@
-pipelineJob("greetingJob") {
-  cleanWs()
-  parameters {
-  
-         stringParam('name', "", 'name of the person')
-        }
-  definition {
-           cps {
-             script('''
-                 pipeline {
-                    agent any
-                    stages {
-                        stage('Greet') {
-                            steps {
-                                echo "Hello!! ${name}"
-                            }
-                         }
-                      }
-                   }
-              '''.stripIndent())
-       sandbox()
-          }
-      }
-  }
+job('example') {
+    parameters {
+        choiceParam('myParameterName', ['option 1 (default)', 'option 2', 'option 3'], 'my description')
+    }
+}
