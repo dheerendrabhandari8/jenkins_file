@@ -1,4 +1,4 @@
-jobDsl scriptText: '''job(\'example\') {
+jobDsl scriptText: '''job(\'suraj\') {
     parameters {
         choiceParam(\'myParameterName\', [\'option 1 (default)\', \'option 2\', \'option 3\'], \'my description\')
     }
