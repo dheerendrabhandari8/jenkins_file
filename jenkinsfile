@@ -1,5 +1,16 @@
-jobDsl scriptText: '''job(\'suraj\') {
-    parameters {
-        choiceParam(\'myParameterName\', [\'option 1 (default)\', \'option 2\', \'option 3\'], \'my description\')
-    }
+jobDsl targets: '''job(\'exa\')
+{
+parameters
+{
+choiceParam(\'myParameterName\',
+[\'option
+1
+(default)\',
+\'option
+2\',
+\'option
+3\'],
+\'my
+description\')
+}
 }'''
