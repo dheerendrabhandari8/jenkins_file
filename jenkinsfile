@@ -1,1 +1,95 @@
-jobDsl targets: 'job(\'suraj\') {     parameters {         choiceParam(\'myParameterName\', [\'option 1 (default)\', \'option 2\', \'option 3\'], \'my description\')     } }'
+#!groovy
+
+def jobName = 'kafka-topics-automation'
+def option = ''
+//def devopsUsers= ['kanishka.bansal','deepak.mourya','aman2.agrawal','eka1cha25414','amit-kumar-paytmbank','rishabhpaytm','vyom_srivastava_paytmbank','anonymous','Rishabh1101','rishabh1101','piyush_2192',  'nareshsharma08', 'atulkumar_2001722','vikasgoyal1992','ankur_d','varun.saluja','shivamrathaur','Nishant_pratap','ppb_som','s_adeel', 'tushar4003', 'Tushar4003','suddhanshusharma','hardeep.singh','pradeepsh626','Pradeepsh626','amalmisra', 'suraj1.kumar', 'manish-jesani','Saurabh_pachauri','pradeep.sharma' ]
+
+node {
+    deleteDir()
+  
+      stage("input") {
+              cluster = input(id: 'inputFromUser', message: 'Please select one of the components', 
+                  parameters: [choice(choices:  ["middleware",  "upi", "kyc"].join("\n"),description:  'Select cluster',name:  'cluster')])
+      
+            datacenter = input(id: 'inputFromUser',message: 'Choose the datacenter',
+                  parameters: [choice(choices:  ["ctrlsmum1a",  "nxtraggn1a", "ap-south-1"].join("\n"),description:  'Select datacenter to deploy for deployment only',name:  'datacenter')])
+      
+            profile = input(id: 'inputFromUser',message: 'Choose the profile',
+                  parameters: [choice(choices:  ["prod",  "ite", "pt"].join("\n"),description:  'Select profile to deploy for deployment only',name:  'profile')])
+          
+            infraversion = input(id: 'inputFromUser',message: 'Choose the infraversion',
+                  parameters: [choice(choices:  ["v1",  "v2", "v3"].join("\n"),description:  'Select infraversion to deploy for deployment only',name:  'infraversion')])
+      
+            println cluster
+              println datacenter
+              println profile
+              println infraversion
+      }
+  
+    stage('Checkout infrastructure-as-code') {
+        try {
+            println cluster
+              println datacenter
+              println profile
+              println infraversion
+          
+            echo "Cloning infrastructure-as-code"
+            
+            checkout([$class: 'GitSCM', branches: [[name: '*/kafka-topics-automation']],userRemoteConfigs: [[url: 'ssh://git@bitbucket.paytmpb.io:7999/in/infrastructure-as-code.git', credentialsId: 'bitbucket_credentials']]])
+             //timeout(time: 30, unit: 'MINUTES') 
+        }
+        
+        catch (exc) {
+            echo "unable to pull code"
+            throw exc
+          }
+        }
+                                           
+                                           
+    stage('Build and Deploy'){
+        try {
+        timeout(time: 20, unit: 'MINUTES')  {   
+          input(id: 'inputFromUser', message: 'Select choice', parameters: [choice(choices: "buildAndDeploy\ndeploy", description: "test", name: 'jobInputType')])
+          echo "${jobInputType}"
+          path = "services/kafka-topics-automation"
+            if ("${jobInputType}" == "buildAndDeploy") {
+                dir("${path}"){
+                     sh "aws ecr get-login-password --region ap-south-1 --profile saas | sudo docker login --username AWS --password-stdin 313136901406.dkr.ecr.ap-south-1.amazonaws.com"
+                     sh "docker build -t 313136901406.dkr.ecr.ap-south-1.amazonaws.com/bankdevops/kafka-topics-automation:0.2 ."
+                     sh "docker tag 313136901406.dkr.ecr.ap-south-1.amazonaws.com/bankdevops/kafka-topics-automation:0.2   313136901406.dkr.ecr.ap-south-1.amazonaws.com/paytmbank/devops:kafka-topics-automation-0.2"
+                     //sh "export AWS_PROFILE=saas"
+                     sh "docker push 313136901406.dkr.ecr.ap-south-1.amazonaws.com/paytmbank/devops:kafka-topics-automation-0.2"
+                }
+                echo "Building the docker image and pushing it to ecr"
+            }
+        }
+        }
+
+        catch (exc) {
+            echo "unable to process input"
+            throw exc
+          }
+      }
+
+      stage('Deploy') {
+          try {
+          path = "services/kafka-topics-automation"
+          yaml_file = "${path}/kubernetes/cronjob.yaml"
+          config_map = "${path}/config-map/${cluster}/${datacenter}/${profile}/${infraversion}/configmap.yaml"
+          sh "cat ${config_map}"
+            if ("${cluster}" == "middleware" && "${datacenter}" == "ctrlsmum1a" && "${profile}" == "ite" && "${infraversion}" == "v1") {
+                
+                sh "sudo kubectl --kubeconfig /root/kubeconfig/kubeconfig-eks-mwite1 apply -f ${config_map} -n test-kafka" 
+                sh "sudo kubectl --kubeconfig /root/kubeconfig/kubeconfig-eks-mwite1 apply -f ${yaml_file} -n test-kafka"
+
+            }
+            echo "Yaml deployed on the respective cluster"
+ 
+         }
+          catch (exc) {
+            echo "unable to process input"
+            throw exc
+          }
+
+      }
+}
